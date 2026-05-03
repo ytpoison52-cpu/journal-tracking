@@ -588,9 +588,14 @@
 const SUPABASE_URL = 'https://bldfgsqhovwzztmhcsyu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsZGZnc3Fob3Z3enp0bWhjc3l1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3NTc0NzIsImV4cCI6MjA5MzMzMzQ3Mn0.4a9ACJaw_z1Jz7KJadsF2CYhGrlP-gpYvYBp4wL98RI';
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-window.supabase = supabase;
-console.log('✅ Supabase initialized successfully');
+let supabase;
+if (!window.supabase) {
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  window.supabaseClient = supabase;
+  console.log('✅ Supabase initialized successfully');
+} else {
+  supabase = window.supabaseClient;
+}
 
 const SK_ARTICLES = 'al_usariyah_articles';
 const SK_PERSONNEL = 'al_usariyah_personnel';
@@ -741,23 +746,23 @@ function loadAll() {
 }
 
 // --- INIT ---
-checkStorage();
-loadAll();
-document.getElementById('fieldDate').valueAsDate = new Date();
+window.addEventListener('DOMContentLoaded', function() {
+  checkStorage();
+  loadAll();
+  document.getElementById('fieldDate').valueAsDate = new Date();
+  
+  // Add first author field
+  addAuthorField();
+  
+  renderAll();
+  renderPersonnel();
+  populateFilterDropdowns();
 
-// Wait for DOM to be ready before adding author field
-setTimeout(() => {
-  addAuthorField(); // Add first author field
-}, 100);
-
-renderAll();
-renderPersonnel();
-populateFilterDropdowns();
-
-// Initialize Supabase
-loadArticlesFromSupabase();
-loadPersonnelFromSupabase();
-showToast('Terhubung ke Supabase ☁️', 'success');
+  // Initialize Supabase
+  loadArticlesFromSupabase();
+  loadPersonnelFromSupabase();
+  showToast('Terhubung ke Supabase ☁️', 'success');
+});
 
 // --- PAGE NAV ---
 function showPage(name, btn) {
