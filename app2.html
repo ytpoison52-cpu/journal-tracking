@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Al Usariyah — Journal Article Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -15,8 +18,19 @@
     --teal-50:#E1F5EE;--teal-600:#0F6E56;--teal-800:#085041;
     --purple-50:#EEEDFE;--purple-600:#534AB7;--purple-800:#3C3489;
   }
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'Source Sans 3',sans-serif;font-size:15px;background:var(--gray-50);color:var(--gray-800);min-height:100vh;}
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 15px;
+    background: var(--gray-50);
+    color: var(--gray-800);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
   /* HEADER */
   .app-header{background:#fff;border-bottom:1px solid var(--gray-200);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100;}
@@ -59,7 +73,7 @@
   .validation-msg.show{display:block;}
 
   /* BUTTONS */
-  .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;font-family:'Source Sans 3',sans-serif;font-size:13px;font-weight:500;border-radius:6px;border:1px solid;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;font-family:'Source Sans 3',sans-serif;font-size:13px;font-weight:500;border-radius:6px;border:1px solid;cursor:pointer;transition:all 0.15s;white-space:nowrap;-webkit-tap-highlight-color:transparent;touch-action:manipulation;min-height:36px;}
   .btn:active{transform:scale(0.98);}
   .btn-primary{background:var(--blue-600);border-color:var(--blue-600);color:#fff;width:100%;justify-content:center;padding:10px;font-size:14px;}
   .btn-primary:hover{background:var(--blue-800);border-color:var(--blue-800);}
@@ -76,13 +90,13 @@
   .btn-save:hover{background:var(--blue-100);}
 
   /* FILTER BAR */
-  .filter-bar{display:flex;gap:8px;padding:0.75rem 1.25rem;background:var(--gray-50);border-bottom:1px solid var(--gray-100);overflow-x:auto;}
-  .filter-btn{padding:4px 12px;font-size:12px;font-weight:500;border-radius:20px;border:1px solid var(--gray-200);background:#fff;color:var(--gray-600);cursor:pointer;white-space:nowrap;transition:all 0.15s;font-family:'Source Sans 3',sans-serif;}
+  .filter-bar{display:flex;gap:8px;padding:0.75rem 1.25rem;background:var(--gray-50);border-bottom:1px solid var(--gray-100);overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .filter-btn{padding:4px 12px;font-size:12px;font-weight:500;border-radius:20px;border:1px solid var(--gray-200);background:#fff;color:var(--gray-600);cursor:pointer;white-space:nowrap;transition:all 0.15s;font-family:'Source Sans 3',sans-serif;-webkit-tap-highlight-color:transparent;touch-action:manipulation;min-height:28px;}
   .filter-btn:hover{border-color:var(--blue-400);color:var(--blue-800);}
   .filter-btn.active{background:var(--blue-600);border-color:var(--blue-600);color:#fff;}
 
   /* ARTICLE CARDS */
-  .articles-list{padding:1rem;display:flex;flex-direction:column;gap:10px;}
+  .articles-list{padding:1rem;display:flex;flex-direction:column;gap:10px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
   .article-card{border:1px solid var(--gray-200);border-radius:10px;background:#fff;overflow:hidden;transition:box-shadow 0.15s,border-color 0.15s;}
   .article-card:hover{border-color:var(--blue-200);box-shadow:0 2px 12px rgba(55,138,221,0.08);}
   .article-card-header{padding:0.875rem 1rem 0.75rem;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
@@ -197,9 +211,86 @@
   .section-divider{height:1px;background:var(--gray-100);margin:1.25rem 0;}
 
   @media(max-width:768px){
-    .app-body{grid-template-columns:1fr;padding:1rem;}
+    .app-header{padding:0 1rem;height:auto;min-height:60px;flex-wrap:wrap;}
+    .brand{flex:1;}
+    .brand-name{font-size:15px;}
+    .brand-sub{font-size:11px;}
     .header-stats{display:none;}
-    .funding-summary{grid-template-columns:repeat(2,1fr);}
+    
+    .app-nav{padding:0 1rem;overflow-x:auto;white-space:nowrap;}
+    .nav-tab{padding:8px 14px;font-size:12px;}
+    
+    .app-body{grid-template-columns:1fr;padding:1rem;gap:1rem;}
+    .app-body-full{padding:1rem;}
+    
+    .panel-header{padding:0.875rem 1rem;flex-direction:column;align-items:flex-start;gap:8px;}
+    .panel-body{padding:1rem;}
+    
+    .form-group input, .form-group select{font-size:16px;} /* Prevent zoom on iOS */
+    
+    .author-row{grid-template-columns:1fr;gap:8px;}
+    .author-row input{width:100%;}
+    .btn-remove-author{width:100%;justify-content:center;}
+    
+    .filter-bar{padding:0.625rem 1rem;gap:6px;flex-wrap:wrap;}
+    .filter-btn{font-size:11px;padding:3px 10px;}
+    #filterAffiliation, #filterIssue, #searchInput{width:100%;margin:4px 0 0 0;}
+    
+    .article-card-header{padding:0.75rem 0.875rem;flex-direction:column;align-items:flex-start;gap:6px;}
+    .article-title{font-size:13px;}
+    .status-badge{font-size:10px;padding:2px 8px;}
+    
+    .article-meta{padding:0 0.875rem 0.625rem;gap:8px;font-size:11px;}
+    .meta-item{font-size:11px;}
+    .meta-item svg{width:11px;height:11px;}
+    
+    .article-card-body{padding:0.625rem 0.875rem;flex-direction:column;align-items:stretch;}
+    .checklist{width:100%;justify-content:flex-start;}
+    .card-actions{width:100%;justify-content:flex-start;margin-top:8px;}
+    .btn-sm{font-size:11px;padding:4px 8px;}
+    
+    .review-section{padding:0.625rem 0.875rem;}
+    .review-section-title{font-size:10px;}
+    .review-info-item{font-size:11px;}
+    
+    .modal{max-width:95%;margin:0 1rem;}
+    .modal-header{padding:0.875rem 1rem;}
+    .modal-title{font-size:14px;}
+    .modal-body{padding:1rem;}
+    .modal-footer{padding:0.875rem 1rem;flex-direction:column;}
+    .modal-footer .btn{width:100%;}
+    
+    .funding-summary{grid-template-columns:repeat(2,1fr);gap:8px;}
+    .fund-card{padding:0.75rem;}
+    .fund-card-label{font-size:10px;}
+    .fund-card-value{font-size:18px;}
+    .fund-card-sub{font-size:10px;}
+    
+    .funding-table-header{padding:0.875rem 1rem;flex-direction:column;align-items:stretch;gap:8px;}
+    .funding-table-header > div:last-child{flex-direction:column;gap:6px;}
+    .funding-table-header input, .funding-table-header select, .funding-table-header .btn{width:100%;}
+    
+    .funding-table-wrap{overflow-x:auto;}
+    .funding-table{font-size:11px;min-width:600px;}
+    .funding-table th, .funding-table td{padding:8px 10px;}
+    .funding-table th{font-size:10px;}
+    
+    .personnel-section-title{font-size:11px;}
+    .personnel-item{padding:6px 8px;font-size:12px;}
+    .personnel-name{font-size:12px;}
+    .personnel-role{font-size:10px;}
+    .add-personnel-row{flex-direction:column;}
+    .add-personnel-row input{width:100%;}
+    .btn-add-mini{width:100%;}
+    
+    .issue-divider-label{font-size:10px;padding:2px 10px;}
+    
+    .empty-state{padding:2rem 1rem;}
+    .empty-state svg{width:32px;height:32px;}
+    .empty-state p{font-size:13px;}
+    
+    .toast-container{bottom:1rem;right:1rem;left:1rem;}
+    .toast{font-size:12px;padding:8px 12px;}
   }
 </style>
 </head>
