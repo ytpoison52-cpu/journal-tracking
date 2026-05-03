@@ -584,7 +584,7 @@
 <script type="module">
 // Import Firebase
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -602,7 +602,7 @@ const db = getFirestore(app);
 
 // Make Firebase available globally
 window.db = db;
-window.firestoreModules = { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy };
+window.firestoreModules = { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, setDoc };
 window.firebaseReady = true;
 
 console.log('🔥 Firebase initialized successfully');
@@ -678,18 +678,21 @@ async function loadPersonnelFromFirebase() {
 // Firebase: Save article
 async function saveArticleToFirebase(article, isNew = true) {
   try {
-    const { collection, addDoc, updateDoc, doc } = window.firestoreModules;
+    const { collection, addDoc, updateDoc, doc, setDoc } = window.firestoreModules;
     if (isNew) {
-      const docRef = await addDoc(collection(window.db, 'articles'), article);
-      article.id = docRef.id;
-      console.log('✅ Article saved to Firebase:', docRef.id);
+      // Use setDoc with custom ID instead of addDoc
+      await setDoc(doc(window.db, 'articles', article.id), article);
+      console.log('✅ Article saved to Firebase:', article.id);
     } else {
-      await updateDoc(doc(window.db, 'articles', article.id), article);
+      // Update existing document
+      const docRef = doc(window.db, 'articles', article.id);
+      const { id, ...articleData } = article; // Remove id from data
+      await updateDoc(docRef, articleData);
       console.log('✅ Article updated in Firebase:', article.id);
     }
   } catch (error) {
     console.error('❌ Error saving article:', error);
-    showToast('Gagal menyimpan ke Firebase', 'error');
+    showToast('Gagal menyimpan ke Firebase: ' + error.message, 'error');
   }
 }
 
