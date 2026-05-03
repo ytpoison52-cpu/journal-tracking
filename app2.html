@@ -580,6 +580,34 @@
 
 <div class="toast-container" id="toastContainer"></div>
 
+<!-- Firebase SDK -->
+<script type="module">
+// Import Firebase
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDJaANwl-tEgQk_3442D4hpl8SA7R-sGC8",
+  authDomain: "journal-tracking.firebaseapp.com",
+  projectId: "journal-tracking",
+  storageBucket: "journal-tracking.firebasestorage.app",
+  messagingSenderId: "22805876990",
+  appId: "1:22805876990:web:91e207254eebd39f14d5af"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Make Firebase available globally
+window.db = db;
+window.firestoreModules = { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy };
+window.firebaseReady = true;
+
+console.log('🔥 Firebase initialized successfully');
+</script>
+
 <script>
 const SK_ARTICLES = 'al_usariyah_articles';
 const SK_PERSONNEL = 'al_usariyah_personnel';
@@ -593,14 +621,115 @@ let filterIssue = '';
 let editingId = null;
 let reviewingId = null;
 let authorFieldCount = 0;
+let useFirebase = false;
 
 // --- STORAGE ---
 function checkStorage() {
   try { localStorage.setItem('_t','1'); localStorage.removeItem('_t'); return true; }
   catch(e) { document.getElementById('compatWarning').classList.add('show'); return false; }
 }
-function saveArticles() { localStorage.setItem(SK_ARTICLES, JSON.stringify(articles)); }
-function savePersonnel() { localStorage.setItem(SK_PERSONNEL, JSON.stringify(personnel)); }
+
+// Wait for Firebase to be ready
+function waitForFirebase(callback) {
+  if (window.firebaseReady) {
+    useFirebase = true;
+    callback();
+  } else {
+    setTimeout(() => waitForFirebase(callback), 100);
+  }
+}
+
+// Firebase: Load articles
+async function loadArticlesFromFirebase() {
+  try {
+    const { collection, getDocs, query, orderBy } = window.firestoreModules;
+    const q = query(collection(window.db, 'articles'), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    articles = [];
+    snapshot.forEach(doc => {
+      articles.push({ id: doc.id, ...doc.data() });
+    });
+    console.log('✅ Loaded', articles.length, 'articles from Firebase');
+    renderAll();
+    populateFilterDropdowns();
+  } catch (error) {
+    console.error('❌ Error loading articles:', error);
+    showToast('Gagal memuat data dari Firebase', 'error');
+  }
+}
+
+// Firebase: Load personnel
+async function loadPersonnelFromFirebase() {
+  try {
+    const { collection, getDocs } = window.firestoreModules;
+    const snapshot = await getDocs(collection(window.db, 'personnel'));
+    if (!snapshot.empty) {
+      const doc = snapshot.docs[0];
+      personnel = doc.data();
+      window.personnelDocId = doc.id;
+    }
+    console.log('✅ Loaded personnel from Firebase');
+    renderPersonnel();
+  } catch (error) {
+    console.error('❌ Error loading personnel:', error);
+  }
+}
+
+// Firebase: Save article
+async function saveArticleToFirebase(article, isNew = true) {
+  try {
+    const { collection, addDoc, updateDoc, doc } = window.firestoreModules;
+    if (isNew) {
+      const docRef = await addDoc(collection(window.db, 'articles'), article);
+      article.id = docRef.id;
+      console.log('✅ Article saved to Firebase:', docRef.id);
+    } else {
+      await updateDoc(doc(window.db, 'articles', article.id), article);
+      console.log('✅ Article updated in Firebase:', article.id);
+    }
+  } catch (error) {
+    console.error('❌ Error saving article:', error);
+    showToast('Gagal menyimpan ke Firebase', 'error');
+  }
+}
+
+// Firebase: Delete article
+async function deleteArticleFromFirebase(id) {
+  try {
+    const { deleteDoc, doc } = window.firestoreModules;
+    await deleteDoc(doc(window.db, 'articles', id));
+    console.log('✅ Article deleted from Firebase:', id);
+  } catch (error) {
+    console.error('❌ Error deleting article:', error);
+    showToast('Gagal menghapus dari Firebase', 'error');
+  }
+}
+
+// Firebase: Save personnel
+async function savePersonnelToFirebase() {
+  try {
+    const { collection, addDoc, updateDoc, doc } = window.firestoreModules;
+    if (window.personnelDocId) {
+      await updateDoc(doc(window.db, 'personnel', window.personnelDocId), personnel);
+    } else {
+      const docRef = await addDoc(collection(window.db, 'personnel'), personnel);
+      window.personnelDocId = docRef.id;
+    }
+    console.log('✅ Personnel saved to Firebase');
+  } catch (error) {
+    console.error('❌ Error saving personnel:', error);
+  }
+}
+
+// LocalStorage fallback
+function saveArticles() { 
+  if (useFirebase) return; // Firebase handles saving
+  localStorage.setItem(SK_ARTICLES, JSON.stringify(articles)); 
+}
+function savePersonnel() { 
+  if (useFirebase) return; // Firebase handles saving
+  localStorage.setItem(SK_PERSONNEL, JSON.stringify(personnel)); 
+}
 function loadAll() {
   const ra = localStorage.getItem(SK_ARTICLES);
   if (ra) { try { articles = JSON.parse(ra); } catch(e) { articles = []; } }
@@ -616,6 +745,14 @@ addAuthorField(); // Add first author field
 renderAll();
 renderPersonnel();
 populateFilterDropdowns();
+
+// Initialize Firebase
+waitForFirebase(() => {
+  console.log('🔥 Starting Firebase sync...');
+  loadArticlesFromFirebase();
+  loadPersonnelFromFirebase();
+  showToast('Terhubung ke Firebase ☁️', 'success');
+});
 
 // --- PAGE NAV ---
 function showPage(name, btn) {
@@ -634,14 +771,16 @@ function addPersonnel(role) {
   if (!name) return;
   if (personnel[role].includes(name)) { showToast('Nama sudah ada', 'error'); return; }
   personnel[role].push(name);
-  savePersonnel();
+  if (useFirebase) savePersonnelToFirebase();
+  else savePersonnel();
   input.value = '';
   renderPersonnel();
   showToast(name + ' ditambahkan sebagai ' + role, 'success');
 }
 function removePersonnel(role, name) {
   personnel[role] = personnel[role].filter(n => n !== name);
-  savePersonnel();
+  if (useFirebase) savePersonnelToFirebase();
+  else savePersonnel();
   renderPersonnel();
 }
 function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
@@ -820,13 +959,19 @@ function startEdit(id) {
 function deleteArticle(id) {
   if (!confirm('Hapus artikel ini?')) return;
   articles = articles.filter(a => a.id !== id);
-  saveArticles(); renderAll(); showToast('Artikel dihapus');
+  if (useFirebase) deleteArticleFromFirebase(id);
+  else saveArticles();
+  renderAll(); 
+  showToast('Artikel dihapus');
 }
 
 function rejectArticle(id) {
   const idx = articles.findIndex(a => a.id === id);
   if (idx === -1) return;
-  articles[idx].status = 'rejected'; saveArticles(); renderAll();
+  articles[idx].status = 'rejected'; 
+  if (useFirebase) saveArticleToFirebase(articles[idx], false);
+  else saveArticles();
+  renderAll();
   showToast('Artikel ditolak','error');
 }
 
@@ -835,7 +980,8 @@ function publishArticle(id) {
   const idx = articles.findIndex(a => a.id === id);
   if (idx === -1) return;
   articles[idx].status = 'published';
-  saveArticles();
+  if (useFirebase) saveArticleToFirebase(articles[idx], false);
+  else saveArticles();
   renderAll();
   showToast('Artikel siap publish!', 'success');
 }
@@ -881,7 +1027,10 @@ function submitReview() {
   const idx = articles.findIndex(a => a.id === reviewingId);
   if (idx === -1) return;
   articles[idx] = {...articles[idx], status:'review', editor, reviewer, layoutWorker, issue, email, doi};
-  saveArticles(); closeReviewModal(); renderAll();
+  if (useFirebase) saveArticleToFirebase(articles[idx], false);
+  else saveArticles();
+  closeReviewModal(); 
+  renderAll();
   populateFilterDropdowns();
   showToast('Artikel masuk tahap review','success');
 }
@@ -891,7 +1040,9 @@ function toggleCheck(id, key) {
   const idx = articles.findIndex(a => a.id === id);
   if (idx === -1) return;
   articles[idx].checklist[key] = !articles[idx].checklist[key];
-  saveArticles(); renderAll();
+  if (useFirebase) saveArticleToFirebase(articles[idx], false);
+  else saveArticles();
+  renderAll();
 }
 
 // --- FILTER ---
