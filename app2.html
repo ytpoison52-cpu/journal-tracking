@@ -832,13 +832,14 @@ function populateReviewDropdowns() {
 }
 
 // --- AUTHORS MANAGEMENT ---
-function addAuthorField() {
+window.addAuthorField = function() {
   const container = document.getElementById('authorsContainer');
   if (!container) {
     console.error('authorsContainer not found');
     return;
   }
-  const id = ++authorFieldCount;
+  authorFieldCount++;
+  const id = authorFieldCount;
   const div = document.createElement('div');
   div.className = 'author-row';
   div.id = `author-row-${id}`;
@@ -848,11 +849,71 @@ function addAuthorField() {
     <button type="button" class="btn-remove-author" onclick="removeAuthorField(${id})">✕</button>
   `;
   container.appendChild(div);
+  console.log('Author field added:', id);
 }
 
-function removeAuthorField(id) {
+window.removeAuthorField = function(id) {
   const row = document.getElementById(`author-row-${id}`);
   if (row) row.remove();
+}
+
+window.submitArticle = async function() {
+  const title = document.getElementById('fieldTitle').value.trim();
+  const authors = getAuthors();
+  const date = document.getElementById('fieldDate').value;
+  const email = document.getElementById('fieldEmail').value.trim();
+  const doi = document.getElementById('fieldDOI').value.trim();
+  
+  let valid = true;
+  const errTitle = document.getElementById('errTitle');
+  const errAuthors = document.getElementById('errAuthors');
+  const errDate = document.getElementById('errDate');
+  
+  if (!title) { errTitle.classList.add('show'); valid = false; } else errTitle.classList.remove('show');
+  if (authors.length === 0) { errAuthors.classList.add('show'); valid = false; } else errAuthors.classList.remove('show');
+  if (!date) { errDate.classList.add('show'); valid = false; } else errDate.classList.remove('show');
+  
+  if (!valid) return;
+
+  if (editingId) {
+    const idx = articles.findIndex(a => a.id === editingId);
+    if (idx !== -1) { 
+      articles[idx] = {...articles[idx], title, authors, date, email, doi}; 
+      if (useSupabase) await saveArticleToSupabase(articles[idx], false);
+      else saveArticles();
+      showToast('Artikel diperbarui','success'); 
+      cancelEdit(); 
+    }
+  } else {
+    const article = {
+      title, 
+      authors, 
+      date, 
+      email, 
+      doi,
+      status:'submitted', 
+      editor:'', 
+      reviewer:'', 
+      layoutWorker:'', 
+      issue:'', 
+      checklist:{turnitin:false,eyd:false,layout:false}, 
+      createdAt:new Date().toISOString()
+    };
+    
+    if (useSupabase) {
+      await saveArticleToSupabase(article, true);
+      articles.unshift(article);
+    } else {
+      article.id = Date.now().toString();
+      articles.unshift(article);
+      saveArticles();
+    }
+    
+    showToast('Artikel ditambahkan','success'); 
+    clearForm();
+  }
+  renderAll();
+  populateFilterDropdowns();
 }
 
 function getAuthors() {
