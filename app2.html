@@ -744,7 +744,12 @@ function loadAll() {
 checkStorage();
 loadAll();
 document.getElementById('fieldDate').valueAsDate = new Date();
-addAuthorField(); // Add first author field
+
+// Wait for DOM to be ready before adding author field
+setTimeout(() => {
+  addAuthorField(); // Add first author field
+}, 100);
+
 renderAll();
 renderPersonnel();
 populateFilterDropdowns();
@@ -824,6 +829,10 @@ function populateReviewDropdowns() {
 // --- AUTHORS MANAGEMENT ---
 function addAuthorField() {
   const container = document.getElementById('authorsContainer');
+  if (!container) {
+    console.error('authorsContainer not found');
+    return;
+  }
   const id = ++authorFieldCount;
   const div = document.createElement('div');
   div.className = 'author-row';
