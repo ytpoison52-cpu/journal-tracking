@@ -870,7 +870,7 @@ function setAuthors(authors) {
 }
 
 // --- ARTICLE SUBMIT ---
-function submitArticle() {
+async function submitArticle() {
   const title = document.getElementById('fieldTitle').value.trim();
   const authors = getAuthors();
   const date = document.getElementById('fieldDate').value;
@@ -892,12 +892,13 @@ function submitArticle() {
     const idx = articles.findIndex(a => a.id === editingId);
     if (idx !== -1) { 
       articles[idx] = {...articles[idx], title, authors, date, email, doi}; 
-      saveArticles(); 
+      if (useFirebase) await saveArticleToFirebase(articles[idx], false);
+      else saveArticles();
       showToast('Artikel diperbarui','success'); 
       cancelEdit(); 
     }
   } else {
-    articles.unshift({
+    const article = {
       id:Date.now().toString(), 
       title, 
       authors, 
@@ -911,8 +912,16 @@ function submitArticle() {
       issue:'', 
       checklist:{turnitin:false,eyd:false,layout:false}, 
       createdAt:new Date().toISOString()
-    });
-    saveArticles(); 
+    };
+    
+    if (useFirebase) {
+      await saveArticleToFirebase(article, true);
+      articles.unshift(article);
+    } else {
+      articles.unshift(article);
+      saveArticles();
+    }
+    
     showToast('Artikel ditambahkan','success'); 
     clearForm();
   }
